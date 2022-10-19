@@ -57,4 +57,9 @@
   <ItemGroup>
     <Folder Include="Properties" />
   </ItemGroup>
+  <ItemGroup>
+    <Build Include="People.sql" />
+    <Build Include="Vehicles.sql" />
+    <Build Include="Reservations.sql" />
+  </ItemGroup>
 </Project>
