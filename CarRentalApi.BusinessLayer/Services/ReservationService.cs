@@ -2,6 +2,7 @@
 using AutoMapper.QueryableExtensions;
 using CarRentalApi.BusinessLayer.Services.Interfaces;
 using CarRentalApi.DataAccessLayer;
+using CarRentalApi.DataAccessLayer.Entities.Common;
 using CarRentalApi.Shared.Common;
 using CarRentalApi.Shared.Models;
 using CarRentalApi.Shared.Requests;
@@ -75,12 +76,36 @@ public class ReservationService : IReservationService
 
 	public async Task<Result<Reservation>> SaveAsync(SaveReservationRequest request)
 	{
+		var personExist = await ExistsAsync<Entities.Person>(request.PersonId);
+		var vehicleExist = await ExistsAsync<Entities.Vehicle>(request.VehicleId);
+
+		if (!personExist)
+		{
+			return Result.Fail(FailureReasons.ItemNotFound, "Invalid person");
+		}
+
+		if (!vehicleExist)
+		{
+			return Result.Fail(FailureReasons.ItemNotFound, "Invalid vehicle");
+		}
+
 		var query = dataContext.GetData<Entities.Reservation>(trackingChanges: true);
 		var reservation = request != null ? await query.FirstOrDefaultAsync(r => r.Id == request.Id) : null;
 
 		if (reservation == null)
 		{
 			reservation = mapper.Map<Entities.Reservation>(request);
+
+			var reservationExist = await dataContext.ExistsAsync<Entities.Reservation>(r => r.PersonId == reservation.PersonId &&
+				r.VehicleId == reservation.VehicleId &&
+				r.ReservationStart == reservation.ReservationStart &&
+				r.ReservationEnd == reservation.ReservationEnd);
+
+			if (reservationExist)
+			{
+				return Result.Fail(FailureReasons.Conflict);
+			}
+
 			dataContext.Insert(reservation);
 		}
 		else
@@ -93,5 +118,10 @@ public class ReservationService : IReservationService
 
 		var savedReservation = mapper.Map<Reservation>(reservation);
 		return savedReservation;
+	}
+
+	private Task<bool> ExistsAsync<TEntity>(Guid id) where TEntity : BaseEntity
+	{
+		return dataContext.ExistsAsync<TEntity>(x => x.Id == id);
 	}
 }
