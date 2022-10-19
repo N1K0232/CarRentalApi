@@ -3,7 +3,7 @@ using OperationResults;
 using OperationResults.AspNetCore;
 using System.Net.Mime;
 
-namespace CarRentalApi.Controllers.Common;
+namespace CarRentalApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

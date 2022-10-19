@@ -1,5 +1,12 @@
+using CarRentalApi.BusinessLayer.MapperProfiles;
+using CarRentalApi.BusinessLayer.Services;
+using CarRentalApi.BusinessLayer.Services.Interfaces;
+using CarRentalApi.BusinessLayer.Validators;
+using CarRentalApi.DataAccessLayer;
+using FluentValidation;
 using Hellang.Middleware.ProblemDetails;
 using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
+using OperationResults.AspNetCore;
 using System.Text.Json.Serialization;
 using TinyHelpers.Json.Serialization;
 
@@ -13,6 +20,7 @@ app.Run();
 
 void ConfigureServices(IServiceCollection services, IConfiguration configuration)
 {
+    services.AddOperationResult();
     services.AddProblemDetails();
     services.AddControllers()
     .AddJsonOptions(options =>
@@ -22,12 +30,23 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+    services.AddAutoMapper(typeof(PersonMapperProfile).Assembly);
+    services.AddValidatorsFromAssemblyContaining<SavePersonValidator>();
+
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen()
     .AddFluentValidationRulesToSwagger(options =>
     {
         options.SetNotNullableIfMinLengthGreaterThenZero = true;
     });
+
+    string connectionString = configuration.GetConnectionString("SqlConnection");
+    services.AddSqlServer<DataContext>(connectionString);
+    services.AddScoped<IDataContext>(services => services.GetRequiredService<DataContext>());
+
+    services.AddScoped<IPeopleService, PeopleService>();
+    services.AddScoped<IVehicleService, VehicleService>();
+    services.AddScoped<IReservationService, ReservationService>();
 }
 
 void Configure(IApplicationBuilder app)
@@ -41,6 +60,7 @@ void Configure(IApplicationBuilder app)
     });
     app.UseHttpsRedirection();
     app.UseAuthorization();
+    app.UseRouting();
     app.UseEndpoints(endpoint =>
     {
         endpoint.MapControllers();
