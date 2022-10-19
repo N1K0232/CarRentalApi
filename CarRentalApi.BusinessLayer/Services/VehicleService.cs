@@ -82,13 +82,13 @@ public class VehicleService : IVehicleService
 		{
 			vehicle = mapper.Map<Entities.Vehicle>(request);
 
-			var exists = await dataContext.ExistsAsync<Entities.Vehicle>(v => v.Brand == vehicle.Brand &&
+			var vehicleExist = await dataContext.ExistsAsync<Entities.Vehicle>(v => v.Brand == vehicle.Brand &&
 				v.Model == vehicle.Model &&
 				v.Plate == vehicle.Plate &&
 				v.Description == vehicle.Description &&
 				v.ReleaseDate == vehicle.ReleaseDate);
 
-			if (exists)
+			if (vehicleExist)
 			{
 				return Result.Fail(FailureReasons.Conflict);
 			}

@@ -82,11 +82,11 @@ public class PeopleService : IPeopleService
 		{
 			person = mapper.Map<Entities.Person>(request);
 
-			var exists = await dataContext.ExistsAsync<Entities.Person>(p => p.FirstName == person.FirstName &&
+			var personExist = await dataContext.ExistsAsync<Entities.Person>(p => p.FirstName == person.FirstName &&
 				p.LastName == person.LastName &&
 				p.DateOfBirth == person.DateOfBirth);
 
-			if (exists)
+			if (personExist)
 			{
 				return Result.Fail(FailureReasons.Conflict);
 			}
