@@ -2,7 +2,6 @@
 using AutoMapper.QueryableExtensions;
 using CarRentalApi.BusinessLayer.Services.Interfaces;
 using CarRentalApi.DataAccessLayer;
-using CarRentalApi.DataAccessLayer.Entities.Common;
 using CarRentalApi.Shared.Common;
 using CarRentalApi.Shared.Models;
 using CarRentalApi.Shared.Requests;
@@ -76,8 +75,8 @@ public class ReservationService : IReservationService
 
 	public async Task<Result<Reservation>> SaveAsync(SaveReservationRequest request)
 	{
-		var personExist = await ExistsAsync<Entities.Person>(request.PersonId);
-		var vehicleExist = await ExistsAsync<Entities.Vehicle>(request.VehicleId);
+		var personExist = await dataContext.ExistsAsync<Entities.Person>(request.PersonId);
+		var vehicleExist = await dataContext.ExistsAsync<Entities.Vehicle>(request.VehicleId);
 
 		if (!personExist)
 		{
@@ -118,10 +117,5 @@ public class ReservationService : IReservationService
 
 		var savedReservation = mapper.Map<Reservation>(reservation);
 		return savedReservation;
-	}
-
-	private Task<bool> ExistsAsync<TEntity>(Guid id) where TEntity : BaseEntity
-	{
-		return dataContext.ExistsAsync<TEntity>(x => x.Id == id);
 	}
 }

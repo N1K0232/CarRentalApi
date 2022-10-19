@@ -37,10 +37,14 @@ public class DataContext : DbContext, IDataContext
         Set<TEntity>().Update(entity);
     }
 
+    public Task<bool> ExistsAsync<TEntity>(Guid id) where TEntity : BaseEntity
+    {
+        return ExistsAsyncInternal<TEntity>(e => e.Id == id);
+    }
+
     public Task<bool> ExistsAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : BaseEntity
     {
-        var set = GetDataInternal<TEntity>();
-        return set.AnyAsync(predicate);
+        return ExistsAsyncInternal<TEntity>(predicate);
     }
 
     public Task<TEntity> GetAsync<TEntity>(Guid id) where TEntity : BaseEntity
@@ -168,6 +172,12 @@ public class DataContext : DbContext, IDataContext
         }
 
         return methods;
+    }
+
+    private Task<bool> ExistsAsyncInternal<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : BaseEntity
+    {
+        var set = GetDataInternal<TEntity>();
+        return set.AnyAsync(predicate);
     }
 
     private IQueryable<TEntity> GetDataInternal<TEntity>(bool ignoreQueryFilters = false, bool trackingChanges = false) where TEntity : BaseEntity

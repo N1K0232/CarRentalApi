@@ -11,6 +11,8 @@ public interface IDataContext
 
     void Edit<TEntity>(TEntity entity) where TEntity : BaseEntity;
 
+    Task<bool> ExistsAsync<TEntity>(Guid id) where TEntity : BaseEntity;
+
     Task<bool> ExistsAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : BaseEntity;
 
     Task<TEntity> GetAsync<TEntity>(Guid id) where TEntity : BaseEntity;
