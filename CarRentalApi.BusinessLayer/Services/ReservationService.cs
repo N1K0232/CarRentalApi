@@ -76,13 +76,12 @@ public class ReservationService : IReservationService
 	public async Task<Result<Reservation>> SaveAsync(SaveReservationRequest request)
 	{
 		var personExist = await dataContext.ExistsAsync<Entities.Person>(request.PersonId);
-		var vehicleExist = await dataContext.ExistsAsync<Entities.Vehicle>(request.VehicleId);
-
 		if (!personExist)
 		{
 			return Result.Fail(FailureReasons.ItemNotFound, "Invalid person");
 		}
 
+		var vehicleExist = await dataContext.ExistsAsync<Entities.Vehicle>(request.VehicleId);
 		if (!vehicleExist)
 		{
 			return Result.Fail(FailureReasons.ItemNotFound, "Invalid vehicle");
@@ -113,9 +112,16 @@ public class ReservationService : IReservationService
 			dataContext.Edit(reservation);
 		}
 
-		await dataContext.SaveAsync();
+		try
+		{
+			await dataContext.SaveAsync();
 
-		var savedReservation = mapper.Map<Reservation>(reservation);
-		return savedReservation;
+			var savedReservation = mapper.Map<Reservation>(reservation);
+			return savedReservation;
+		}
+		catch (Exception ex)
+		{
+			return Result.Fail(FailureReasons.DatabaseError, ex);
+		}
 	}
 }

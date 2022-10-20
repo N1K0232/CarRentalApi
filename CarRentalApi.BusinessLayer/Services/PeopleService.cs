@@ -99,9 +99,16 @@ public class PeopleService : IPeopleService
 			dataContext.Edit(person);
 		}
 
-		await dataContext.SaveAsync();
+		try
+		{
+			await dataContext.SaveAsync();
 
-		var savedPerson = mapper.Map<Person>(person);
-		return savedPerson;
+			var savedPerson = mapper.Map<Person>(person);
+			return savedPerson;
+		}
+		catch (Exception ex)
+		{
+			return Result.Fail(FailureReasons.DatabaseError, ex);
+		}
 	}
 }

@@ -101,9 +101,16 @@ public class VehicleService : IVehicleService
 			dataContext.Edit(vehicle);
 		}
 
-		await dataContext.SaveAsync();
+		try
+		{
+			await dataContext.SaveAsync();
 
-		var savedVehicle = mapper.Map<Vehicle>(vehicle);
-		return savedVehicle;
+			var savedVehicle = mapper.Map<Vehicle>(vehicle);
+			return savedVehicle;
+		}
+		catch (Exception ex)
+		{
+			return Result.Fail(FailureReasons.DatabaseError, ex);
+		}
 	}
 }
