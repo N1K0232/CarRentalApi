@@ -1,5 +1,6 @@
 ﻿using CarRentalApi.BusinessLayer.Services.Interfaces;
 using CarRentalApi.Shared.Requests;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarRentalApi.Controllers;
@@ -7,10 +8,12 @@ namespace CarRentalApi.Controllers;
 public class PeopleController : ControllerBase
 {
 	private readonly IPeopleService peopleService;
+	private readonly IValidator<SavePersonRequest> personValidator;
 
-	public PeopleController(IPeopleService peopleService)
+	public PeopleController(IPeopleService peopleService, IValidator<SavePersonRequest> personValidator)
 	{
 		this.peopleService = peopleService;
+		this.personValidator = personValidator;
 	}
 
 
@@ -43,7 +46,13 @@ public class PeopleController : ControllerBase
 	[HttpPost]
 	public async Task<IActionResult> Save([FromBody] SavePersonRequest request)
 	{
-		var result = await peopleService.SaveAsync(request);
-		return CreateResponse(result, StatusCodes.Status200OK);
+		var validationResult = personValidator.Validate(request);
+		if (validationResult.IsValid)
+		{
+			var result = await peopleService.SaveAsync(request);
+			return CreateResponse(result, StatusCodes.Status200OK);
+		}
+
+		return BadRequest(validationResult.Errors);
 	}
 }

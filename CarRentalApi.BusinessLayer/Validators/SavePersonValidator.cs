@@ -10,15 +10,17 @@ public class SavePersonValidator : AbstractValidator<SavePersonRequest>
         RuleFor(p => p.FirstName)
             .NotNull()
             .NotEmpty()
-            .WithMessage("the first name is required");
+            .MaximumLength(256)
+            .WithMessage("insert a valid first name");
 
         RuleFor(p => p.LastName)
             .NotNull()
             .NotEmpty()
-            .WithMessage("the last name is required");
+            .MaximumLength(256)
+            .WithMessage("insert a valid last name");
 
         RuleFor(p => p.DateOfBirth)
             .NotNull()
-            .WithMessage("the date of birth is required");
+            .WithMessage("insert a valid date of birth");
     }
 }

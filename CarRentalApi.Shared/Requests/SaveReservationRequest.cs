@@ -8,7 +8,7 @@ public class SaveReservationRequest : BaseRequestModel
 
     public Guid VehicleId { get; set; }
 
-    public DateTime ReservationStart { get; set; }
+    public DateTime? ReservationStart { get; set; }
 
-    public DateTime ReservationEnd { get; set; }
+    public DateTime? ReservationEnd { get; set; }
 }

@@ -1,5 +1,6 @@
 ﻿using CarRentalApi.BusinessLayer.Services.Interfaces;
 using CarRentalApi.Shared.Requests;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarRentalApi.Controllers;
@@ -7,10 +8,12 @@ namespace CarRentalApi.Controllers;
 public class ReservationsController : ControllerBase
 {
 	private readonly IReservationService reservationService;
+	private readonly IValidator<SaveReservationRequest> reservationValidator;
 
-	public ReservationsController(IReservationService reservationService)
+	public ReservationsController(IReservationService reservationService, IValidator<SaveReservationRequest> reservationValidator)
 	{
 		this.reservationService = reservationService;
+		this.reservationValidator = reservationValidator;
 	}
 
 
@@ -43,7 +46,13 @@ public class ReservationsController : ControllerBase
 	[HttpPost]
 	public async Task<IActionResult> Save([FromBody] SaveReservationRequest request)
 	{
-		var result = await reservationService.SaveAsync(request);
-		return CreateResponse(result, StatusCodes.Status200OK);
+		var validationResult = reservationValidator.Validate(request);
+		if (validationResult.IsValid)
+		{
+			var result = await reservationService.SaveAsync(request);
+			return CreateResponse(result, StatusCodes.Status200OK);
+		}
+
+		return BadRequest(validationResult);
 	}
 }
