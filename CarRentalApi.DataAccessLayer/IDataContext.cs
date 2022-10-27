@@ -21,7 +21,7 @@ public interface IDataContext
 
     void Insert<TEntity>(TEntity entity) where TEntity : BaseEntity;
 
-    Task SaveAsync();
+    Task<int> SaveAsync();
 
     Task ExecuteTransactionAsync(Func<Task> action);
 }

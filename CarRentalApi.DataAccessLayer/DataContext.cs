@@ -63,21 +63,7 @@ public class DataContext : DbContext, IDataContext
         Set<TEntity>().Add(entity);
     }
 
-    public Task SaveAsync() => SaveChangesAsync();
-
-    public Task ExecuteTransactionAsync(Func<Task> action)
-    {
-        var strategy = Database.CreateExecutionStrategy();
-
-        return strategy.ExecuteAsync(async () =>
-        {
-            using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false);
-            await action.Invoke().ConfigureAwait(false);
-            await transaction.CommitAsync().ConfigureAwait(false);
-        });
-    }
-
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public Task<int> SaveAsync()
     {
         var entries = GetEntries();
 
@@ -119,7 +105,19 @@ public class DataContext : DbContext, IDataContext
             }
         }
 
-        return base.SaveChangesAsync(cancellationToken);
+        return SaveChangesAsync();
+    }
+
+    public Task ExecuteTransactionAsync(Func<Task> action)
+    {
+        var strategy = Database.CreateExecutionStrategy();
+
+        return strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false);
+            await action.Invoke().ConfigureAwait(false);
+            await transaction.CommitAsync().ConfigureAwait(false);
+        });
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
