@@ -34,8 +34,14 @@ public class ReservationService : IReservationService
 		if (reservation != null)
 		{
 			dataContext.Delete(reservation);
-			await dataContext.SaveAsync();
-			return Result.Ok();
+
+			var deletedEntries = await dataContext.SaveAsync();
+			if (deletedEntries > 0)
+			{
+				return Result.Ok();
+			}
+
+			return Result.Fail(FailureReasons.DatabaseError, "cannot delete reservcation");
 		}
 
 		return Result.Fail(FailureReasons.ItemNotFound, "No reservation found");
@@ -112,16 +118,13 @@ public class ReservationService : IReservationService
 			dataContext.Edit(reservation);
 		}
 
-		try
+		var savedEntries = await dataContext.SaveAsync();
+		if (savedEntries > 0)
 		{
-			await dataContext.SaveAsync();
-
 			var savedReservation = mapper.Map<Reservation>(reservation);
 			return savedReservation;
 		}
-		catch (Exception ex)
-		{
-			return Result.Fail(FailureReasons.DatabaseError, ex);
-		}
+
+		return Result.Fail(FailureReasons.DatabaseError, "cannot save reservation");
 	}
 }

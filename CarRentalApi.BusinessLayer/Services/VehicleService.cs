@@ -34,8 +34,14 @@ public class VehicleService : IVehicleService
 		if (vehicle != null)
 		{
 			dataContext.Delete(vehicle);
-			await dataContext.SaveAsync();
-			return Result.Ok();
+
+			var deletedEntries = await dataContext.SaveAsync();
+			if (deletedEntries > 0)
+			{
+				return Result.Ok();
+			}
+
+			return Result.Fail(FailureReasons.DatabaseError, "Cannot delete vehicle");
 		}
 
 		return Result.Fail(FailureReasons.ItemNotFound, "No vehicle found");
@@ -101,16 +107,13 @@ public class VehicleService : IVehicleService
 			dataContext.Edit(vehicle);
 		}
 
-		try
+		var savedEntries = await dataContext.SaveAsync();
+		if (savedEntries > 0)
 		{
-			await dataContext.SaveAsync();
-
 			var savedVehicle = mapper.Map<Vehicle>(vehicle);
 			return savedVehicle;
 		}
-		catch (Exception ex)
-		{
-			return Result.Fail(FailureReasons.DatabaseError, ex);
-		}
+
+		return Result.Fail(FailureReasons.DatabaseError, "cannot save vehicle");
 	}
 }

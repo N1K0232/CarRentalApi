@@ -34,8 +34,14 @@ public class PeopleService : IPeopleService
 		if (person != null)
 		{
 			dataContext.Delete(person);
-			await dataContext.SaveAsync();
-			return Result.Ok();
+
+			var deletedEntries = await dataContext.SaveAsync();
+			if (deletedEntries > 0)
+			{
+				return Result.Ok();
+			}
+
+			return Result.Fail(FailureReasons.DatabaseError, "Cannot delete person");
 		}
 
 		return Result.Fail(FailureReasons.ItemNotFound, "No person found");
@@ -99,16 +105,13 @@ public class PeopleService : IPeopleService
 			dataContext.Edit(person);
 		}
 
-		try
+		var savedEntries = await dataContext.SaveAsync();
+		if (savedEntries > 0)
 		{
-			await dataContext.SaveAsync();
-
 			var savedPerson = mapper.Map<Person>(person);
 			return savedPerson;
 		}
-		catch (Exception ex)
-		{
-			return Result.Fail(FailureReasons.DatabaseError, ex);
-		}
+
+		return Result.Fail(FailureReasons.DatabaseError, "cannot save person");
 	}
 }
