@@ -1,10 +1,6 @@
-using CarRentalApi.BusinessLayer.MapperProfiles;
 using CarRentalApi.BusinessLayer.Services;
 using CarRentalApi.BusinessLayer.Services.Interfaces;
-using CarRentalApi.BusinessLayer.Validators;
 using CarRentalApi.DataAccessLayer;
-using FluentValidation;
-using FluentValidation.AspNetCore;
 using Hellang.Middleware.ProblemDetails;
 using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
 using OperationResults.AspNetCore;
@@ -31,13 +27,8 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-    services.AddFluentValidationAutoValidation(options =>
-    {
-        options.DisableDataAnnotationsValidation = true;
-    });
-
-    services.AddAutoMapper(typeof(PersonMapperProfile).Assembly);
-    services.AddValidatorsFromAssemblyContaining<SavePersonValidator>();
+    services.AddMapperProfiles();
+    services.AddValidators();
 
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen()

@@ -5,6 +5,7 @@ using CarRentalApi.DataAccessLayer;
 using CarRentalApi.Shared.Common;
 using CarRentalApi.Shared.Models;
 using CarRentalApi.Shared.Requests;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using OperationResults;
 using Entities = CarRentalApi.DataAccessLayer.Entities;
@@ -15,11 +16,13 @@ public class ReservationService : IReservationService
 {
 	private readonly IDataContext dataContext;
 	private readonly IMapper mapper;
+	private readonly IValidator<SaveReservationRequest> reservationValidator;
 
-	public ReservationService(IDataContext dataContext, IMapper mapper)
+	public ReservationService(IDataContext dataContext, IMapper mapper, IValidator<SaveReservationRequest> reservationValidator)
 	{
 		this.dataContext = dataContext;
 		this.mapper = mapper;
+		this.reservationValidator = reservationValidator;
 	}
 
 
@@ -81,6 +84,19 @@ public class ReservationService : IReservationService
 
 	public async Task<Result<Reservation>> SaveAsync(SaveReservationRequest request)
 	{
+		var validationResult = await reservationValidator.ValidateAsync(request);
+		if (!validationResult.IsValid)
+		{
+			var validationErrors = new List<ValidationError>();
+
+			foreach (var error in validationResult.Errors.DistinctBy(e => e.PropertyName))
+			{
+				validationErrors.Add(new ValidationError(error.PropertyName, error.ErrorMessage));
+			}
+
+			return Result.Fail(FailureReasons.GenericError, validationErrors);
+		}
+
 		var personExist = await dataContext.ExistsAsync<Entities.Person>(request.PersonId);
 		if (!personExist)
 		{
@@ -93,8 +109,8 @@ public class ReservationService : IReservationService
 			return Result.Fail(FailureReasons.ItemNotFound, "Invalid vehicle");
 		}
 
-		var query = dataContext.GetData<Entities.Reservation>(trackingChanges: true);
-		var reservation = request != null ? await query.FirstOrDefaultAsync(r => r.Id == request.Id) : null;
+		var reservation = request != null ? await dataContext.GetData<Entities.Reservation>(trackingChanges: true)
+			.FirstOrDefaultAsync(r => r.Id == request.Id) : null;
 
 		if (reservation == null)
 		{

@@ -1,6 +1,5 @@
 ﻿using CarRentalApi.BusinessLayer.Services.Interfaces;
 using CarRentalApi.Shared.Requests;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarRentalApi.Controllers;
@@ -8,12 +7,10 @@ namespace CarRentalApi.Controllers;
 public class VehiclesController : ControllerBase
 {
 	private readonly IVehicleService vehicleService;
-	private readonly IValidator<SaveVehicleRequest> vehicleValidator;
 
-	public VehiclesController(IVehicleService vehicleService, IValidator<SaveVehicleRequest> vehicleValidator)
+	public VehiclesController(IVehicleService vehicleService)
 	{
 		this.vehicleService = vehicleService;
-		this.vehicleValidator = vehicleValidator;
 	}
 
 	[HttpDelete]
@@ -45,13 +42,7 @@ public class VehiclesController : ControllerBase
 	[HttpPost]
 	public async Task<IActionResult> Save([FromBody] SaveVehicleRequest request)
 	{
-		var validationResult = vehicleValidator.Validate(request);
-		if (validationResult.IsValid)
-		{
-			var result = await vehicleService.SaveAsync(request);
-			return CreateResponse(result);
-		}
-
-		return BadRequest(validationResult.Errors);
+		var result = await vehicleService.SaveAsync(request);
+		return CreateResponse(result);
 	}
 }

@@ -5,6 +5,7 @@ using CarRentalApi.DataAccessLayer;
 using CarRentalApi.Shared.Common;
 using CarRentalApi.Shared.Models;
 using CarRentalApi.Shared.Requests;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using OperationResults;
 using Entities = CarRentalApi.DataAccessLayer.Entities;
@@ -15,11 +16,13 @@ public class VehicleService : IVehicleService
 {
 	private readonly IDataContext dataContext;
 	private readonly IMapper mapper;
+	private readonly IValidator<SaveVehicleRequest> vehicleValidator;
 
-	public VehicleService(IDataContext dataContext, IMapper mapper)
+	public VehicleService(IDataContext dataContext, IMapper mapper, IValidator<SaveVehicleRequest> vehicleValidator)
 	{
 		this.dataContext = dataContext;
 		this.mapper = mapper;
+		this.vehicleValidator = vehicleValidator;
 	}
 
 
@@ -81,8 +84,20 @@ public class VehicleService : IVehicleService
 
 	public async Task<Result<Vehicle>> SaveAsync(SaveVehicleRequest request)
 	{
-		var query = dataContext.GetData<Entities.Vehicle>(trackingChanges: true);
-		var vehicle = request.Id != null ? await query.FirstOrDefaultAsync(v => v.Id == request.Id) : null;
+		var validationResult = await vehicleValidator.ValidateAsync(request);
+		if (!validationResult.IsValid)
+		{
+			var validationErrors = new List<ValidationError>();
+
+			foreach (var error in validationResult.Errors.DistinctBy(e => e.PropertyName))
+			{
+				validationErrors.Add(new ValidationError(error.PropertyName, error.ErrorMessage));
+			}
+
+			return Result.Fail(FailureReasons.GenericError, validationErrors);
+		}
+
+		var vehicle = request.Id != null ? await dataContext.GetData<Entities.Vehicle>(trackingChanges: true).FirstOrDefaultAsync(v => v.Id == request.Id) : null;
 
 		if (vehicle == null)
 		{
