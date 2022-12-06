@@ -1,0 +1,10 @@
+﻿CREATE TABLE [dbo].[Logs]
+(
+	[Id] INT NOT NULL IDENTITY(1,1),
+	[Message] NVARCHAR(4000) NULL,
+	[Level] VARCHAR(50) NULL,
+	[TimeStamp] NVARCHAR(4000) NULL,
+	[Exception] NVARCHAR(4000) NULL,
+
+	PRIMARY KEY(Id)
+)
