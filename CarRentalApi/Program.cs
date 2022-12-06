@@ -5,20 +5,27 @@ using FluentValidation.AspNetCore;
 using Hellang.Middleware.ProblemDetails;
 using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using OperationResults.AspNetCore;
+using Serilog;
 using System.Text.Json.Serialization;
 using TinyHelpers.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
-ConfigureServices(builder.Services, builder.Configuration);
+ConfigureServices(builder.Services, builder.Configuration, builder.Host);
 
 var app = builder.Build();
 Configure(app);
 
-app.Run();
+await app.RunAsync();
 
-void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+void ConfigureServices(IServiceCollection services, IConfiguration configuration, IHostBuilder host)
 {
+    host.UseSerilog((hostingContext, loggerConfiguration) =>
+    {
+        loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration);
+    });
+
     services.AddOperationResult(options =>
     {
         options.ErrorResponseFormat = ErrorResponseFormat.Default;
@@ -47,9 +54,6 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-    services.AddMapperProfiles();
-    services.AddValidators();
-
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen()
     .AddFluentValidationRulesToSwagger(options =>
@@ -57,13 +61,19 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
         options.SetNotNullableIfMinLengthGreaterThenZero = true;
     });
 
-    string connectionString = configuration.GetConnectionString("SqlConnection");
-    services.AddSqlServer<DataContext>(connectionString);
-    services.AddScoped<IDataContext>(services => services.GetRequiredService<DataContext>());
+    services.AddDbContext<IDataContext, DataContext>(options =>
+    {
+        var connectionString = configuration.GetConnectionString("SqlConnection");
+        options.UseSqlServer(connectionString, sqlOptions =>
+        {
+            sqlOptions.CommandTimeout(1);
+            sqlOptions.EnableRetryOnFailure(10, TimeSpan.FromSeconds(2), null);
+        });
+    });
 
-    services.AddScoped<IPeopleService, PeopleService>();
-    services.AddScoped<IVehicleService, VehicleService>();
-    services.AddScoped<IReservationService, ReservationService>();
+    services.TryAddScoped<IPeopleService, PeopleService>();
+    services.TryAddScoped<IVehicleService, VehicleService>();
+    services.TryAddScoped<IReservationService, ReservationService>();
 }
 
 void Configure(IApplicationBuilder app)
@@ -78,6 +88,11 @@ void Configure(IApplicationBuilder app)
     });
 
     app.UseHttpsRedirection();
+
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.IncludeQueryInRequestPath = true;
+    });
 
     app.UseRouting();
 

@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CarRentalApi.DataAccessLayer\CarRentalApi.DataAccessLayer.csproj" />
+    <ProjectReference Include="..\CarRentalApi.Logging\CarRentalApi.Logging.csproj" />
     <ProjectReference Include="..\CarRentalApi.Shared\CarRentalApi.Shared.csproj" />
   </ItemGroup>
 
