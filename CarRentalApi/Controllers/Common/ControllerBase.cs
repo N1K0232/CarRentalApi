@@ -6,7 +6,8 @@ using System.Net.Mime;
 namespace CarRentalApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [Produces(MediaTypeNames.Application.Json)]
 public abstract class ControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
 {

@@ -1,13 +1,18 @@
 using CarRentalApi.BusinessLayer.Services;
 using CarRentalApi.BusinessLayer.Services.Interfaces;
 using CarRentalApi.DataAccessLayer;
+using CarRentalApi.Documentation;
 using FluentValidation.AspNetCore;
 using Hellang.Middleware.ProblemDetails;
 using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using OperationResults.AspNetCore;
 using Serilog;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Reflection;
 using System.Text.Json.Serialization;
 using TinyHelpers.Json.Serialization;
 
@@ -15,7 +20,8 @@ var builder = WebApplication.CreateBuilder(args);
 ConfigureServices(builder.Services, builder.Configuration, builder.Host);
 
 var app = builder.Build();
-Configure(app);
+var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+Configure(app, provider);
 
 await app.RunAsync();
 
@@ -54,8 +60,31 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+    services.AddApiVersioning(options =>
+    {
+        options.ReportApiVersions = true;
+    });
+
+    services.AddVersionedApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";
+        options.SubstituteApiVersionInUrl = true;
+    });
+
     services.AddEndpointsApiExplorer();
-    services.AddSwaggerGen()
+
+    services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
+    services.AddSwaggerGen(options =>
+    {
+        options.OperationFilter<SwaggerDefaultValues>();
+
+        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        options.IncludeXmlComments(xmlPath);
+
+        options.CustomOperationIds(api => $"{api.ActionDescriptor.RouteValues["controller"]}_{api.ActionDescriptor.RouteValues["action"]}");
+        options.UseAllOfToExtendReferenceSchemas();
+    })
     .AddFluentValidationRulesToSwagger(options =>
     {
         options.SetNotNullableIfMinLengthGreaterThenZero = true;
@@ -76,15 +105,18 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
     services.TryAddScoped<IReservationService, ReservationService>();
 }
 
-void Configure(IApplicationBuilder app)
+void Configure(IApplicationBuilder app, IApiVersionDescriptionProvider provider)
 {
     app.UseProblemDetails();
 
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.RoutePrefix = string.Empty;
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Car Rental Api v1");
+        foreach (var description in provider.ApiVersionDescriptions)
+        {
+            options.RoutePrefix = string.Empty;
+            options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName);
+        }
     });
 
     app.UseHttpsRedirection();
