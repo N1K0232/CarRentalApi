@@ -15,6 +15,9 @@ public class PeopleController : ControllerBase
 
 
 	[HttpDelete]
+	[ProducesResponseType(StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status400BadRequest)]
+	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public async Task<IActionResult> Delete(Guid personId)
 	{
 		var result = await peopleService.DeleteAsync(personId);
@@ -22,6 +25,9 @@ public class PeopleController : ControllerBase
 	}
 
 	[HttpGet("{personId}")]
+	[ProducesResponseType(StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status400BadRequest)]
+	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public async Task<IActionResult> Get(Guid personId)
 	{
 		var person = await peopleService.GetAsync(personId);
@@ -29,6 +35,8 @@ public class PeopleController : ControllerBase
 	}
 
 	[HttpGet("{pageIndex}/{itemsPerPage}")]
+	[ProducesResponseType(StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public async Task<IActionResult> Get(int pageIndex = 0, int itemsPerPage = 10)
 	{
 		var people = await peopleService.GetAsync(pageIndex, itemsPerPage);
@@ -41,9 +49,12 @@ public class PeopleController : ControllerBase
 	}
 
 	[HttpPost]
+	[ProducesResponseType(StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status400BadRequest)]
+	[ProducesResponseType(StatusCodes.Status409Conflict)]
 	public async Task<IActionResult> Save([FromBody] SavePersonRequest request)
 	{
 		var result = await peopleService.SaveAsync(request);
-		return CreateResponse(result, StatusCodes.Status200OK);
+		return CreateResponse(result, StatusCodes.Status201Created);
 	}
 }
