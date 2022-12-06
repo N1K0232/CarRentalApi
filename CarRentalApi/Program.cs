@@ -5,14 +5,19 @@ using CarRentalApi.Documentation;
 using FluentValidation.AspNetCore;
 using Hellang.Middleware.ProblemDetails;
 using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using OperationResults.AspNetCore;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Net.Mime;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using TinyHelpers.Json.Serialization;
 
@@ -90,14 +95,29 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
         options.SetNotNullableIfMinLengthGreaterThenZero = true;
     });
 
+    var connectionString = configuration.GetConnectionString("SqlConnection");
     services.AddDbContext<IDataContext, DataContext>(options =>
     {
-        var connectionString = configuration.GetConnectionString("SqlConnection");
         options.UseSqlServer(connectionString, sqlOptions =>
         {
             sqlOptions.CommandTimeout(1);
             sqlOptions.EnableRetryOnFailure(10, TimeSpan.FromSeconds(2), null);
         });
+    });
+
+    services.AddHealthChecks().AddAsyncCheck("sql", async () =>
+    {
+        try
+        {
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+        }
+        catch (Exception ex)
+        {
+            return HealthCheckResult.Unhealthy(ex.Message, ex);
+        }
+
+        return HealthCheckResult.Healthy();
     });
 
     services.TryAddScoped<IPeopleService, PeopleService>();
@@ -133,5 +153,26 @@ void Configure(IApplicationBuilder app, IApiVersionDescriptionProvider provider)
     app.UseEndpoints(endpoint =>
     {
         endpoint.MapControllers();
+
+        endpoint.MapHealthChecks("/status", new HealthCheckOptions
+        {
+            ResponseWriter = async (context, report) =>
+            {
+                var result = JsonSerializer.Serialize(
+                            new
+                            {
+                                Status = report.Status.ToString(),
+                                Details = report.Entries.Select(e => new
+                                {
+                                    Service = e.Key,
+                                    Status = Enum.GetName(typeof(HealthStatus), e.Value.Status),
+                                    Description = e.Value.Description
+                                })
+                            });
+
+                context.Response.ContentType = MediaTypeNames.Application.Json;
+                await context.Response.WriteAsync(result);
+            }
+        });
     });
 }
