@@ -15,6 +15,9 @@ public class ReservationsController : ControllerBase
 
 
 	[HttpDelete]
+	[ProducesResponseType(StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status400BadRequest)]
+	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public async Task<IActionResult> Delete(Guid reservationId)
 	{
 		var result = await reservationService.DeleteAsync(reservationId);
@@ -22,6 +25,9 @@ public class ReservationsController : ControllerBase
 	}
 
 	[HttpGet("{reservationId}")]
+	[ProducesResponseType(StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status400BadRequest)]
+	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public async Task<IActionResult> Get(Guid reservationId)
 	{
 		var reservation = await reservationService.GetAsync(reservationId);
@@ -29,6 +35,8 @@ public class ReservationsController : ControllerBase
 	}
 
 	[HttpGet("{pageIndex}/{itemsPerPage}")]
+	[ProducesResponseType(StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public async Task<IActionResult> Get(int pageIndex = 0, int itemsPerPage = 10)
 	{
 		var reservations = await reservationService.GetAsync(pageIndex, itemsPerPage);
@@ -40,10 +48,14 @@ public class ReservationsController : ControllerBase
 		return NotFound("No reservation found");
 	}
 
+
 	[HttpPost]
+	[ProducesResponseType(StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status400BadRequest)]
+	[ProducesResponseType(StatusCodes.Status409Conflict)]
 	public async Task<IActionResult> Save([FromBody] SaveReservationRequest request)
 	{
 		var result = await reservationService.SaveAsync(request);
-		return CreateResponse(result, StatusCodes.Status200OK);
+		return CreateResponse(result, StatusCodes.Status201Created);
 	}
 }
