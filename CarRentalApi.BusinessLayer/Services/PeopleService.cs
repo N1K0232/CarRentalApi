@@ -5,6 +5,7 @@ using CarRentalApi.DataAccessLayer;
 using CarRentalApi.Shared.Common;
 using CarRentalApi.Shared.Models;
 using CarRentalApi.Shared.Requests;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using OperationResults;
 using Entities = CarRentalApi.DataAccessLayer.Entities;
@@ -15,11 +16,13 @@ public class PeopleService : IPeopleService
 {
 	private readonly IDataContext dataContext;
 	private readonly IMapper mapper;
+	private readonly IValidator<SavePersonRequest> personValidator;
 
-	public PeopleService(IDataContext dataContext, IMapper mapper)
+	public PeopleService(IDataContext dataContext, IMapper mapper, IValidator<SavePersonRequest> personValidator)
 	{
 		this.dataContext = dataContext;
 		this.mapper = mapper;
+		this.personValidator = personValidator;
 	}
 
 
@@ -81,8 +84,21 @@ public class PeopleService : IPeopleService
 
 	public async Task<Result<Person>> SaveAsync(SavePersonRequest request)
 	{
-		var query = dataContext.GetData<Entities.Person>(trackingChanges: true);
-		var person = request.Id != null ? await query.FirstOrDefaultAsync(p => p.Id == request.Id) : null;
+		var validationResult = await personValidator.ValidateAsync(request);
+		if (!validationResult.IsValid)
+		{
+			var validationErrors = new List<ValidationError>();
+
+			foreach (var error in validationResult.Errors.DistinctBy(e => e.PropertyName))
+			{
+				validationErrors.Add(new ValidationError(error.PropertyName, error.ErrorMessage));
+			}
+
+			return Result.Fail(FailureReasons.GenericError, validationErrors);
+		}
+
+		var person = request.Id != null ? await dataContext.GetData<Entities.Person>(trackingChanges: true)
+			.FirstOrDefaultAsync(p => p.Id == request.Id) : null;
 
 		if (person == null)
 		{
